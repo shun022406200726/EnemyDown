@@ -13,6 +13,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 
 public class EnemyDownCommand implements CommandExecutor {
@@ -21,17 +22,12 @@ public class EnemyDownCommand implements CommandExecutor {
   @Override
   public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
     if (sender instanceof Player player){
-
-      ItemStack customSword = new ItemStack(Material.DIAMOND_SWORD);
-      ItemMeta meta = customSword.getItemMeta();
-      meta.setDisplayName("最強の剣");
-      meta.addEnchant(Enchantment.DAMAGE_ALL, 10, true); // エンチャントを追加
-// 他のアイテムのカスタマイズ（属性やロアなど）も可能です
-      customSword.setItemMeta(meta);
-      player.getInventory().addItem(customSword);
-
-
-
+      PlayerInventory inventory = player.getInventory();
+      inventory.setHelmet(new ItemStack(Material.NETHERITE_HELMET));
+      inventory.setChestplate(new ItemStack(Material.NETHERITE_CHESTPLATE));
+      inventory.setBoots(new ItemStack(Material.NETHERITE_BOOTS));
+      inventory.setLeggings(new ItemStack(Material.NETHERITE_LEGGINGS));
+      inventory.setItemInMainHand(new ItemStack(Material.NETHERITE_SWORD));
 
       World world=player.getWorld();
       player.setHealth(20);
