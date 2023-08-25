@@ -1,5 +1,6 @@
 package plugin.enemydown.command;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.SplittableRandom;
@@ -19,15 +20,26 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
+import plugin.enemydown.data.PlayerScore;
 
 public class EnemyDownCommand implements CommandExecutor , Listener {
 
-  private Player player;
-  private int score;
+  List<PlayerScore>playerScoreList=new ArrayList<>();
   @Override
   public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
     if (sender instanceof Player player){
-      this.player=player;
+      if(playerScoreList.isEmpty()){
+        addNewPlayer(player);
+      }else{
+        for(PlayerScore playerScore:playerScoreList){
+          if(!playerScore.getPlayerName().equals(player.getName())){
+            addNewPlayer(player);
+          }
+        }
+      }
+
+
+
       initPlayerStatus(player);
 
       World world=player.getWorld();
@@ -36,19 +48,30 @@ public class EnemyDownCommand implements CommandExecutor , Listener {
     }
     return false;
   }
-@EventHandler
+
+  private void addNewPlayer(Player player) {
+    PlayerScore newPlayer=new PlayerScore();
+    newPlayer.setPlayerName(player.getName());
+    playerScoreList.add(newPlayer);
+  }
+
+  @EventHandler
 public void onEnemyDeath(EntityDeathEvent e) {
-  if (Objects.isNull(player)) {
-    return;
+  Player player=e.getEntity().getKiller();
+    if (Objects.isNull(player) || playerScoreList.isEmpty()) {
+      return;
+    }
+    for(PlayerScore playerScore:playerScoreList){
+      if(playerScore.getPlayerName().equals(player.getName())){
+        playerScore.setScore(playerScore.getScore()+10);
+        player.sendMessage("敵を倒した！" + playerScore.getScore() + "点！");
+      }
+
+    }
+
+
   }
-  if (Objects.isNull(this.player)) {
-    return;
-  }
-  if (this.player.getName().equals(player.getName())) {
-    score += 10;
-    player.sendMessage("敵を倒した！" + score + "点！");
-  }
-}
+
 
 
 /**
