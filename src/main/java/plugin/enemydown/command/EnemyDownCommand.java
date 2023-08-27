@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.SplittableRandom;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -20,11 +21,19 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
+import plugin.enemydown.Main;
 import plugin.enemydown.data.PlayerScore;
 
 public class EnemyDownCommand implements CommandExecutor , Listener {
 
+  private Main main;
+  private int gameTime=20;
   List<PlayerScore>playerScoreList=new ArrayList<>();
+
+  public EnemyDownCommand(Main main) {
+    this.main=main;
+  }
+
   @Override
   public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
     if (sender instanceof Player player){
@@ -43,8 +52,19 @@ public class EnemyDownCommand implements CommandExecutor , Listener {
       initPlayerStatus(player);
 
       World world=player.getWorld();
+      gameTime=20;
+      Bukkit.getScheduler().runTaskTimer(main,Runnable->{
+        if (gameTime<=0){
+          Runnable.cancel();
+          player.sendMessage("終了");
+          return;
+        }
+        world.spawnEntity(getEnemySpawnLocation(player, world), getEnemy());
+        gameTime -=5;
+      },0,5*20);
 
-      world.spawnEntity(getEnemySpawnLocation(player, world), getEnemy());
+
+
     }
     return false;
   }
