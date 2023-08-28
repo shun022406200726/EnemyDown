@@ -27,7 +27,7 @@ import plugin.enemydown.data.PlayerScore;
 public class EnemyDownCommand implements CommandExecutor , Listener {
 
   private Main main;
-  private int gameTime=20;
+
   List<PlayerScore>playerScoreList=new ArrayList<>();
 
   public EnemyDownCommand(Main main) {
@@ -37,30 +37,23 @@ public class EnemyDownCommand implements CommandExecutor , Listener {
   @Override
   public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
     if (sender instanceof Player player){
-      if(playerScoreList.isEmpty()){
-        addNewPlayer(player);
-      }else{
-        for(PlayerScore playerScore:playerScoreList){
-          if(!playerScore.getPlayerName().equals(player.getName())){
-            addNewPlayer(player);
-          }
-        }
-      }
-
-
+      PlayerScore nowPlayer = getPlayerScore(player);
 
       initPlayerStatus(player);
 
       World world=player.getWorld();
-      gameTime=20;
+      nowPlayer.setGameTime(20);
       Bukkit.getScheduler().runTaskTimer(main,Runnable->{
-        if (gameTime<=0){
+        if (nowPlayer.getGameTime()<=0){
           Runnable.cancel();
-          player.sendMessage("終了");
+          player.sendTitle("終了",
+              nowPlayer.getPlayerName()+"  "+nowPlayer.getScore()+"点!",
+              2,30,0);
+          nowPlayer.setScore(0);
           return;
         }
         world.spawnEntity(getEnemySpawnLocation(player, world), getEnemy());
-        gameTime -=5;
+        nowPlayer.setGameTime(nowPlayer.getGameTime()-5);
       },0,5*20);
 
 
@@ -69,10 +62,18 @@ public class EnemyDownCommand implements CommandExecutor , Listener {
     return false;
   }
 
-  private void addNewPlayer(Player player) {
+
+/**
+ * 新規のプレイヤー情報の追加
+ * @param player　コマンドを実行したプレイヤー
+ * @return 新規プレイヤー
+ */
+
+  private PlayerScore addNewPlayer(Player player) {
     PlayerScore newPlayer=new PlayerScore();
     newPlayer.setPlayerName(player.getName());
     playerScoreList.add(newPlayer);
+    return newPlayer;
   }
 
   @EventHandler
@@ -81,16 +82,36 @@ public void onEnemyDeath(EntityDeathEvent e) {
     if (Objects.isNull(player) || playerScoreList.isEmpty()) {
       return;
     }
-    for(PlayerScore playerScore:playerScoreList){
-      if(playerScore.getPlayerName().equals(player.getName())){
-        playerScore.setScore(playerScore.getScore()+10);
+    for(PlayerScore playerScore:playerScoreList) {
+      if (playerScore.getPlayerName().equals(player.getName())) {
+        playerScore.setScore(playerScore.getScore() + 10);
         player.sendMessage("敵を倒した！" + playerScore.getScore() + "点！");
       }
+    }
+    }
 
+/**
+ * 現在実行しているプレイヤーの情報を取得する
+ * @param player コマンドを実行したプレイヤー
+ * @return　現在実行しているプレイヤーのスコア情報
+ *
+ */
+    private PlayerScore getPlayerScore(Player player) {
+      if(playerScoreList.isEmpty()){
+        return addNewPlayer(player);
+      }else{
+        for(PlayerScore playerScore:playerScoreList){
+          if(!playerScore.getPlayerName().equals(player.getName())){
+            return addNewPlayer(player);
+          }else{
+            return playerScore;
+          }
+        }
+      }
+      return null;
     }
 
 
-  }
 
 
 
