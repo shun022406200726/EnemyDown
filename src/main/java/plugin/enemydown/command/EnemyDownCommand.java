@@ -25,7 +25,40 @@ import org.bukkit.inventory.meta.ItemMeta;
 import plugin.enemydown.Main;
 import plugin.enemydown.data.PlayerScore;
 
-public class EnemyDownCommand implements CommandExecutor , Listener {
+public class EnemyDownCommand extends BaseCommand implements Listener {
+  @Override
+  public boolean onExecutePlayerCommand(Player player) {
+    PlayerScore nowPlayer = getPlayerScore(player);
+
+    initPlayerStatus(player);
+
+    World world=player.getWorld();
+    nowPlayer.setGameTime(20);
+    Bukkit.getScheduler().runTaskTimer(main,Runnable->{
+      if (nowPlayer.getGameTime()<=0){
+        Runnable.cancel();
+        player.sendTitle("終了",
+            nowPlayer.getPlayerName()+"  "+nowPlayer.getScore()+"点!",
+            5,60,10);
+        nowPlayer.setScore(0);
+        List<Entity> nearbyEnemies = player.getNearbyEntities(50, 0, 50);
+        for(Entity enemy:nearbyEnemies){
+          switch (enemy.getType()) {
+            case ZOMBIE, SKELETON, WITCH -> enemy.remove();
+          }
+        }
+        return;
+      }
+      world.spawnEntity(getEnemySpawnLocation(player, world), getEnemy());
+      nowPlayer.setGameTime(nowPlayer.getGameTime()-5);
+    },0,5*20);
+    return true;
+  }
+
+  @Override
+  public boolean onExecuteNPCCommand(CommandSender sender) {
+    return false;
+  }
 
   private Main main;
 
@@ -35,42 +68,7 @@ public class EnemyDownCommand implements CommandExecutor , Listener {
     this.main=main;
   }
 
-  @Override
-  public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-    if (sender instanceof Player player){
-      PlayerScore nowPlayer = getPlayerScore(player);
-
-      initPlayerStatus(player);
-
-      World world=player.getWorld();
-      nowPlayer.setGameTime(20);
-      Bukkit.getScheduler().runTaskTimer(main,Runnable->{
-        if (nowPlayer.getGameTime()<=0){
-          Runnable.cancel();
-          player.sendTitle("終了",
-              nowPlayer.getPlayerName()+"  "+nowPlayer.getScore()+"点!",
-              5,60,10);
-          nowPlayer.setScore(0);
-          List<Entity> nearbyEnemies = player.getNearbyEntities(50, 0, 50);
-          for(Entity enemy:nearbyEnemies){
-            switch (enemy.getType()) {
-              case ZOMBIE, SKELETON, WITCH -> enemy.remove();
-            }
-          }
-          return;
-        }
-        world.spawnEntity(getEnemySpawnLocation(player, world), getEnemy());
-        nowPlayer.setGameTime(nowPlayer.getGameTime()-5);
-      },0,5*20);
-
-
-
-    }
-    return false;
-  }
-
-
-/**
+  /**
  * 新規のプレイヤー情報の追加
  * @param player　コマンドを実行したプレイヤー
  * @return 新規プレイヤー
