@@ -49,8 +49,14 @@ public class EnemyDownCommand implements CommandExecutor , Listener {
           Runnable.cancel();
           player.sendTitle("終了",
               nowPlayer.getPlayerName()+"  "+nowPlayer.getScore()+"点!",
-              2,30,0);
+              5,60,10);
           nowPlayer.setScore(0);
+          List<Entity> nearbyEnemies = player.getNearbyEntities(50, 0, 50);
+          for(Entity enemy:nearbyEnemies){
+            switch (enemy.getType()) {
+              case ZOMBIE, SKELETON, WITCH -> enemy.remove();
+            }
+          }
           return;
         }
         world.spawnEntity(getEnemySpawnLocation(player, world), getEnemy());
