@@ -8,10 +8,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
@@ -21,37 +18,20 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
-import org.bukkit.inventory.meta.ItemMeta;
 import plugin.enemydown.Main;
 import plugin.enemydown.data.PlayerScore;
 
 public class EnemyDownCommand extends BaseCommand implements Listener {
+
+  public static final int GAME_TIME = 20;
+
   @Override
   public boolean onExecutePlayerCommand(Player player) {
     PlayerScore nowPlayer = getPlayerScore(player);
 
     initPlayerStatus(player);
 
-    World world=player.getWorld();
-    nowPlayer.setGameTime(20);
-    Bukkit.getScheduler().runTaskTimer(main,Runnable->{
-      if (nowPlayer.getGameTime()<=0){
-        Runnable.cancel();
-        player.sendTitle("終了",
-            nowPlayer.getPlayerName()+"  "+nowPlayer.getScore()+"点!",
-            5,60,10);
-        nowPlayer.setScore(0);
-        List<Entity> nearbyEnemies = player.getNearbyEntities(50, 0, 50);
-        for(Entity enemy:nearbyEnemies){
-          switch (enemy.getType()) {
-            case ZOMBIE, SKELETON, WITCH -> enemy.remove();
-          }
-        }
-        return;
-      }
-      world.spawnEntity(getEnemySpawnLocation(player, world), getEnemy());
-      nowPlayer.setGameTime(nowPlayer.getGameTime()-5);
-    },0,5*20);
+    gamePlay(player, nowPlayer);
     return true;
   }
 
@@ -75,8 +55,7 @@ public class EnemyDownCommand extends BaseCommand implements Listener {
  */
 
   private PlayerScore addNewPlayer(Player player) {
-    PlayerScore newPlayer=new PlayerScore();
-    newPlayer.setPlayerName(player.getName());
+    PlayerScore newPlayer=new PlayerScore(player.getName());
     playerScoreList.add(newPlayer);
     return newPlayer;
   }
@@ -110,24 +89,18 @@ public void onEnemyDeath(EntityDeathEvent e) {
  *
  */
     private PlayerScore getPlayerScore(Player player) {
+      PlayerScore playerScore=new PlayerScore(player.getName());
       if(playerScoreList.isEmpty()){
-        return addNewPlayer(player);
+        playerScore = addNewPlayer(player);
       }else{
-        for(PlayerScore playerScore:playerScoreList){
-          if(!playerScore.getPlayerName().equals(player.getName())){
-            return addNewPlayer(player);
-          }else{
-            return playerScore;
-          }
-        }
+        playerScore = playerScoreList.stream().findFirst()
+            .map(ps -> ps.getPlayerName().equals(player.getName())
+                ? ps
+                : addNewPlayer(player)).orElse(playerScore);
       }
-      return null;
+      playerScore.setGameTime(GAME_TIME);
+      return playerScore;
     }
-
-
-
-
-
 /**
  * 初期状態へ更新
  */
@@ -141,8 +114,30 @@ public void onEnemyDeath(EntityDeathEvent e) {
     inventory.setLeggings(new ItemStack(Material.NETHERITE_LEGGINGS));
     inventory.setItemInMainHand(new ItemStack(Material.NETHERITE_SWORD));
   }
-
-  private static Location getEnemySpawnLocation(Player player, World world) {
+/**
+ * ゲームを始める
+ */
+  private void gamePlay(Player player, PlayerScore nowPlayer) {
+    Bukkit.getScheduler().runTaskTimer(main,Runnable->{
+      if (nowPlayer.getGameTime()<=0){
+        Runnable.cancel();
+        player.sendTitle("終了",
+            nowPlayer.getPlayerName()+"  "+ nowPlayer.getScore()+"点!",
+            5,60,10);
+        nowPlayer.setScore(0);
+        List<Entity> nearbyEnemies = player.getNearbyEntities(50, 0, 50);
+        for(Entity enemy:nearbyEnemies){
+          switch (enemy.getType()) {
+            case ZOMBIE, SKELETON, WITCH -> enemy.remove();
+          }
+        }
+        return;
+      }
+      player.getWorld().spawnEntity(getEnemySpawnLocation(player), getEnemy());
+      nowPlayer.setGameTime(nowPlayer.getGameTime()-5);
+    },0,5*20);
+  }
+  private static Location getEnemySpawnLocation(Player player) {
     Location playerLocation= player.getLocation();
     int randomX=new SplittableRandom().nextInt(20)-10;
     int randomZ=new SplittableRandom().nextInt(20)-10;
@@ -150,7 +145,7 @@ public void onEnemyDeath(EntityDeathEvent e) {
     double y = playerLocation.getY();
     double z = playerLocation.getZ()+randomZ;
 
-    return new Location(world, x, y, z);
+    return new Location(player.getWorld(), x, y, z);
   }
 
   private static EntityType getEnemy() {
