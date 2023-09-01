@@ -3,6 +3,7 @@ package plugin.enemydown.command;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.SplittableRandom;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -65,22 +66,28 @@ public class EnemyDownCommand extends BaseCommand implements Listener {
 public void onEnemyDeath(EntityDeathEvent e) {
     LivingEntity enemy = e.getEntity();
     Player player= enemy.getKiller();
-    if (Objects.isNull(player) || playerScoreList.isEmpty()) {
+
+    if (Objects.isNull(player) || spawnEntityList.stream()
+        .noneMatch(entity -> entity.equals(enemy))) {
       return;
     }
-    int point = switch (enemy.getType()) {
-      case ZOMBIE -> 10;
-      case SKELETON -> 20;
-      case WITCH -> 30;
-      default -> 0;
-    };
 
-    for(PlayerScore playerScore:playerScoreList) {
-      if (playerScore.getPlayerName().equals(player.getName())) {
-        playerScore.setScore(playerScore.getScore() + point);
-        player.sendMessage("敵を倒した！" + playerScore.getScore() + "点！");
-      }
-    }
+     playerScoreList.stream()
+        .filter(p -> p.getPlayerName().equals(player.getName()))
+        .findFirst()
+        .ifPresent(p ->{
+          int point = switch (enemy.getType()) {
+            case ZOMBIE -> 10;
+            case SKELETON -> 20;
+            case WITCH -> 30;
+            default -> 0;
+        };
+          p.setScore(p.getScore() + point);
+          player.sendMessage("敵を倒した！" + p.getScore() + "点！");
+        });
+
+
+
     }
 
 /**
@@ -129,6 +136,7 @@ public void onEnemyDeath(EntityDeathEvent e) {
             5,60,10);
 
         spawnEntityList.forEach(Entity::remove);
+        spawnEntityList=new ArrayList<>();
         return;
       }
       Entity spawnEntity = player.getWorld().spawnEntity(getEnemySpawnLocation(player), getEnemy());
