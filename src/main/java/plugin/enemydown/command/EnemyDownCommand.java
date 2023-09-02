@@ -6,9 +6,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.SplittableRandom;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.Effect;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -19,25 +22,48 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.potion.PotionEffect;
 import plugin.enemydown.Main;
 import plugin.enemydown.data.PlayerScore;
 
 public class EnemyDownCommand extends BaseCommand implements Listener {
 
   public static final int GAME_TIME = 20;
-
+  public static final String EASY = "easy";
+  public static final String NORMAL = "normal";
+  public static final String HARD = "hard";
+  public static final String NONE = "none";
   @Override
-  public boolean onExecutePlayerCommand(Player player) {
+  public boolean onExecutePlayerCommand(Player player, Command command, String label, String[] args) {
+    String difficulty = getDifficulty(player, args);
+    if (difficulty.equals(NONE)){
+      return false;
+    }
     PlayerScore nowPlayer = getPlayerScore(player);
 
     initPlayerStatus(player);
 
-    gamePlay(player, nowPlayer);
+    gamePlay(player, nowPlayer,difficulty);
     return true;
   }
 
+/**
+ *難易度をコマンド引数から取得
+ * @param player コマンドを実行したプレイヤー
+ * @param args コマンド引数
+ * @return 難易度
+ */
+  private String getDifficulty(Player player, String[] args) {
+    String difficulty=EASY;
+    if (args.length == 1 && (EASY.equals(args[0])||NORMAL.equals(args[0])||HARD.equals(args[0]))) {
+      return args[0];
+    }
+    player.sendMessage(ChatColor.RED+"難易度は？ easy normal hard");
+    return NONE;
+  }
+
   @Override
-  public boolean onExecuteNPCCommand(CommandSender sender) {
+  public boolean onExecuteNPCCommand(CommandSender sender, Command command, String label, String[] args) {
     return false;
   }
 
@@ -85,9 +111,6 @@ public void onEnemyDeath(EntityDeathEvent e) {
           p.setScore(p.getScore() + point);
           player.sendMessage("敵を倒した！" + p.getScore() + "点！");
         });
-
-
-
     }
 
 /**
@@ -108,9 +131,12 @@ public void onEnemyDeath(EntityDeathEvent e) {
       }
       playerScore.setGameTime(GAME_TIME);
       playerScore.setScore(0);
+      removePotionEffect(player);
       return playerScore;
     }
-/**
+
+
+  /**
  * 初期状態へ更新
  */
   private static void initPlayerStatus(Player player) {
@@ -125,8 +151,11 @@ public void onEnemyDeath(EntityDeathEvent e) {
   }
 /**
  * ゲームを始める
+ * @param player　コマンドを実行したプレイヤー
+ * @param nowPlayerScore プレイヤースコア情報
+ * @param difficulty 難易度
  */
-  private void gamePlay(Player player, PlayerScore nowPlayerScore) {
+  private void gamePlay(Player player, PlayerScore nowPlayerScore,String difficulty) {
     Bukkit.getScheduler().runTaskTimer(main,Runnable->{
       if (nowPlayerScore.getGameTime()<=0){
         Runnable.cancel();
@@ -136,10 +165,11 @@ public void onEnemyDeath(EntityDeathEvent e) {
             5,60,10);
 
         spawnEntityList.forEach(Entity::remove);
-        spawnEntityList=new ArrayList<>();
+        spawnEntityList.clear();
+        removePotionEffect(player);
         return;
       }
-      Entity spawnEntity = player.getWorld().spawnEntity(getEnemySpawnLocation(player), getEnemy());
+      Entity spawnEntity = player.getWorld().spawnEntity(getEnemySpawnLocation(player), getEnemy(difficulty));
       spawnEntityList.add(spawnEntity);
       nowPlayerScore.setGameTime(nowPlayerScore.getGameTime()-5);
     },0,5*20);
@@ -154,9 +184,28 @@ public void onEnemyDeath(EntityDeathEvent e) {
 
     return new Location(player.getWorld(), x, y, z);
   }
+/**
+ * ランダムで敵を抽選してその結果を取得します
+ * @param difficulty 難易度
+ * @return 敵
+ */
+  private static EntityType getEnemy(String difficulty) {
+    List<EntityType> enemyList = switch (difficulty) {
+      case NORMAL -> List.of(EntityType.ZOMBIE, EntityType.SKELETON);
+      case HARD -> List.of(EntityType.ZOMBIE, EntityType.SKELETON, EntityType.WITCH);
+      default -> List.of(EntityType.ZOMBIE);
+    };
 
-  private static EntityType getEnemy() {
-    List<EntityType> enemyList=List.of(EntityType.ZOMBIE,EntityType.SKELETON,EntityType.WITCH);
     return enemyList.get(new SplittableRandom().nextInt(enemyList.size()));
+  }
+
+  /**
+   * プレイヤーの状態異常を無効化
+   * @param player コマンドを実行したプレイヤー
+   */
+  private void removePotionEffect(Player player) {
+    player.getActivePotionEffects().stream()
+        .map(PotionEffect::getType)
+        .forEach(player::removePotionEffect);
   }
 }
