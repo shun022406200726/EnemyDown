@@ -1,5 +1,11 @@
 package plugin.enemydown.command;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -26,6 +32,7 @@ import org.bukkit.potion.PotionEffect;
 import plugin.enemydown.Main;
 import plugin.enemydown.data.PlayerScore;
 
+
 public class EnemyDownCommand extends BaseCommand implements Listener {
 
   public static final int GAME_TIME = 20;
@@ -33,8 +40,35 @@ public class EnemyDownCommand extends BaseCommand implements Listener {
   public static final String NORMAL = "normal";
   public static final String HARD = "hard";
   public static final String NONE = "none";
+  public static final String LIST = "list";
   @Override
   public boolean onExecutePlayerCommand(Player player, Command command, String label, String[] args) {
+    if (args.length == 1 && (LIST.equals(args[0]))) {
+      String url="jdbc:mysql://localhost:3306/spigot_server";
+      String user="root";
+      String path ="shun0224mysql";
+
+      String sql="select * from player_score;";
+
+      try(Connection con = DriverManager.getConnection(url,user,path);
+          Statement statement=con.createStatement();
+          ResultSet resultSet = statement.executeQuery(sql)){
+        while (resultSet.next()){
+          int id=resultSet.getInt("id");
+          String name=resultSet.getString("player_name");
+          int score=resultSet.getInt("score");
+          String difficulty=resultSet.getString("difficulty");
+          LocalDateTime date =LocalDateTime.parse(resultSet.getString("registered_at"),
+              DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+          player.sendMessage();
+
+        }
+      }
+
+
+
+      return false;
+    }
     String difficulty = getDifficulty(player, args);
     if (difficulty.equals(NONE)){
       return false;
