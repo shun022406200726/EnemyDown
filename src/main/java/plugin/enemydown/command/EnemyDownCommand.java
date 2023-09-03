@@ -3,6 +3,7 @@ package plugin.enemydown.command;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -53,16 +54,22 @@ public class EnemyDownCommand extends BaseCommand implements Listener {
       try(Connection con = DriverManager.getConnection(url,user,path);
           Statement statement=con.createStatement();
           ResultSet resultSet = statement.executeQuery(sql)){
-        while (resultSet.next()){
-          int id=resultSet.getInt("id");
-          String name=resultSet.getString("player_name");
-          int score=resultSet.getInt("score");
-          String difficulty=resultSet.getString("difficulty");
-          LocalDateTime date =LocalDateTime.parse(resultSet.getString("registered_at"),
-              DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-          player.sendMessage();
 
+        while (resultSet.next()) {
+          int id = resultSet.getInt("id");
+          String name = resultSet.getString("player_name");
+          int score = resultSet.getInt("score");
+          String difficulty = resultSet.getString("difficulty");
+
+          DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+          LocalDateTime date = LocalDateTime.parse(resultSet.getString("registered_at"),
+              formatter);
+
+          player.sendMessage(id + "|" + name + "|" + score + "|" + difficulty + "|" + date.format(
+              formatter));
         }
+      }catch (SQLException e){
+        e.printStackTrace();
       }
 
 
