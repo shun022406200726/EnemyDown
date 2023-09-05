@@ -205,6 +205,20 @@ public void onEnemyDeath(EntityDeathEvent e) {
             nowPlayerScore.getPlayerName()+"  "+ nowPlayerScore.getScore()+"点!",
             5,60,10);
 
+        String url="jdbc:mysql://localhost:3306/spigot_server";
+        String user="root";
+        String path ="shun0224mysql";
+
+        try(Connection con = DriverManager.getConnection(url,user,path);
+            Statement statement=con.createStatement()) {
+          statement.executeUpdate(
+              "insert player_score(player_name, score, difficulty, registered_at)"
+                  + "values('" +nowPlayerScore.getPlayerName() + "'," +nowPlayerScore.getScore() +",'"
+                  +difficulty +"',now());");
+        }catch (SQLException e){
+          e.printStackTrace();
+        }
+
         spawnEntityList.forEach(Entity::remove);
         spawnEntityList.clear();
         removePotionEffect(player);
