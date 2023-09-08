@@ -25,7 +25,7 @@ dependencies {
 
     testCompileOnly 'org.projectlombok:lombok:1.18.26'
     testAnnotationProcessor 'org.projectlombok:lombok:1.18.26'
-    compileOnly 'org.mybatis:mybatis:3.5.13'
+    implementation 'org.mybatis:mybatis:3.5.13'
 }
 
 def targetJavaVersion = 17

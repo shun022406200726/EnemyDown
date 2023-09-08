@@ -12,7 +12,7 @@ import lombok.Setter;
 @Setter
 public class PlayerScore {
   private int id;
-  private String playerName;
+  private String player_name;
   private int score;
   private String difficulty;
   private  String registered_at;
